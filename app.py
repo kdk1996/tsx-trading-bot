@@ -6,12 +6,31 @@ import yfinance as yf
 # --- 1. PAGE CONFIGURATION (Must be at the top) ---
 st.set_page_config(page_title="TSX AI Investor Pro", layout="wide", page_icon="📈")
 
-# --- 2. CUSTOM STYLE (Dark Mode Fintech Look) ---
+# --- 2. CUSTOM STYLE (High-Visibility Light Mode) ---
 st.markdown("""
     <style>
-    .main { background-color: #0e1117; }
-    div[data-testid="stMetricValue"] { font-size: 28px; color: #00ffcc; }
-    .stTable { background-color: #161b22; border-radius: 10px; }
+    /* Main background to white */
+    .stApp {
+        background-color: #ffffff;
+    }
+    /* Text colors to dark navy for high contrast */
+    h1, h2, h3, p, span, label {
+        color: #0a192f !important;
+    }
+    /* Make the table much easier to read */
+    .stTable {
+        background-color: #f8f9fa;
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+    }
+    /* Make metric cards pop with a light grey shadow */
+    div[data-testid="stMetric"] {
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+    }
     </style>
     """, unsafe_allow_html=True)
 
