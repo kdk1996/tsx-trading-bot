@@ -55,7 +55,7 @@ if data is not None:
         color = '#00ffcc' if val == 'BUY' else '#ff4b4b' if val == 'SELL' else '#ffffff'
         return f'color: {color}; font-weight: bold'
 
-    st.table(data.style.applymap(color_signals, subset=['Signal']))
+    st.table(data.style.map(color_signals, subset=['Signal']))
 else:
     st.warning("⚠️ **Bot is warming up!**")
     st.info("The trade data file (trades.csv) hasn't been created yet. Please go to your GitHub Actions tab and click 'Run workflow' to start the analysis.")
