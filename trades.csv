@@ -1,6 +1,6 @@
-Date,Name,Ticker,Price,Signal
-2026-04-26,Shopify Inc.,SHOP.TO,171.88,SELL
-2026-04-26,Royal Bank of Canada,RY.TO,239.83,BUY
-2026-04-26,Enbridge Inc.,ENB.TO,72.86,BUY
-2026-04-26,Canadian Natural Resources,CNQ.TO,60.69,BUY
-2026-04-26,Constellation Software,CSU.TO,2410.8,SELL
+Name,Ticker,Price,Signal,Bought_At,P&L_%
+Shopify Inc.,SHOP.TO,171.88,SELL,0.0,0
+Royal Bank of Canada,RY.TO,239.83,BUY,239.83,0
+Enbridge Inc.,ENB.TO,72.86,BUY,72.86,0
+Vermilion Energy,VET.TO,16.86,BUY,16.86,0
+Constellation Soft,CSU.TO,2410.8,SELL,0.0,0
