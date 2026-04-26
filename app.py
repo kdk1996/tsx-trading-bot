@@ -1,74 +1,57 @@
 import streamlit as st
-import yfinance as yf
+import pandas as pd
 import plotly.graph_objects as go
-from datetime import datetime
 
-# --- PAGE CONFIG ---
-st.set_page_config(page_title="TSX AI Bot", page_icon="📈", layout="wide")
+# --- PAGE SETUP ---
+st.set_page_config(page_title="TSX AI BOT 2026", layout="wide")
 
-# --- CUSTOM CSS FOR MODERN LOOK ---
 st.markdown("""
     <style>
-    .main { background-color: #0e1117; }
-    div[data-testid="stMetricValue"] { font-size: 28px; color: #00ffcc; }
-    .stCard {
-        background-color: #161b22;
-        padding: 20px;
-        border-radius: 15px;
-        border: 1px solid #30363d;
-    }
+    .stMetric { background-color: #1e1e1e; padding: 15px; border-radius: 10px; border: 1px solid #333; }
+    h1 { color: #00ffcc; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- HEADER ---
-st.title("🇨🇦 TSX AI Analysis Bot")
-st.markdown("Automated Market Analysis & Paper Trading")
+st.title("📈 TSX AI Investor Pro")
+st.caption("Real-time Canadian Market Analysis & Paper Trading")
 
-# --- SIDEBAR (Settings) ---
-st.sidebar.header("Bot Configuration")
-ticker = st.sidebar.text_input("Enter Ticker", "SHOP.TO")
-fake_balance = 105420.00 # This would pull from your SQLite DB
+# --- DATA LOADING ---
+@st.cache_data
+def load_trades():
+    try:
+        return pd.read_csv("trades.csv")
+    except:
+        return pd.DataFrame(columns=["Date", "Name", "Ticker", "Price", "Signal"])
 
-# --- TOP ROW: KPI CARDS ---
+data = load_trades()
+
+# --- TOP METRICS ---
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.metric("Virtual Balance", f"${fake_balance:,.2f}", "+2.4%")
+    st.metric("Portfolio Value", "$105,420.00", "+5.4%")
 with col2:
-    st.metric("Total Trades", "42", "6 this week")
+    st.metric("Active Signals", len(data[data['Signal'] == 'BUY']))
 with col3:
-    st.metric("Bot Accuracy", "78%", "Adjusting...")
+    st.metric("Market Status", "TSX: OPEN", "Toronto")
 
-# --- MAIN SECTION: CHARTING ---
-st.write(f"### {ticker} Market Analysis")
-data = yf.download(ticker, period="3mo", interval="1d")
+# --- MAIN ANALYSIS TABLE ---
+st.write("### 🤖 Live Recommendations")
+if not data.empty:
+    # Color coding the signals
+    def color_signal(val):
+        color = '#00ffcc' if val == 'BUY' else '#ff4b4b' if val == 'SELL' else '#ffffff'
+        return f'color: {color}; font-weight: bold'
 
-# Professional Candlestick Chart (Responsive)
-fig = go.Figure(data=[go.Candlestick(
-    x=data.index,
-    open=data['Open'], high=data['High'],
-    low=data['Low'], close=data['Close'],
-    increasing_line_color='#00ffcc', decreasing_line_color='#ff4b4b'
-)])
-fig.update_layout(template="plotly_dark", margin=dict(l=20, r=20, t=20, b=20), height=400)
-st.plotly_chart(fig, use_container_width=True)
+    st.table(data.style.applymap(color_signal, subset=['Signal']))
+else:
+    st.info("Bot is warming up. Run the GitHub Action to see first trades!")
 
-# --- BOTTOM SECTION: AI RECOMMENDATION ---
+# --- INDIVIDUAL CHART ---
 st.divider()
-left_col, right_col = st.columns([1, 2])
-
-with left_col:
-    st.write("#### AI Signal")
-    # Simple logic for visual
-    st.error("SELL SIGNAL") 
-    st.info("The AI detected a 'Double Top' pattern. Recommend moving to cash.")
-
-with right_col:
-    st.write("#### Recent Ledger")
-    # Sample dataframe to look like a trade history
-    history = {
-        "Date": ["2026-04-20", "2026-04-18", "2026-04-15"],
-        "Action": ["BUY", "SELL", "BUY"],
-        "Price": [102.50, 98.20, 95.00],
-        "Result": ["Hold", "+$420", "Hold"]
-    }
-    st.table(history)
+selected_ticker = st.selectbox("Deep Dive Analysis", data['Ticker'].tolist() if not data.empty else ["SHOP.TO"])
+if selected_ticker:
+    import yfinance as yf
+    chart_data = yf.Ticker(selected_ticker).history(period="3mo")
+    fig = go.Figure(data=[go.Candlestick(x=chart_data.index, open=chart_data['Open'], high=chart_data['High'], low=chart_data['Low'], close=chart_data['Close'])])
+    fig.update_layout(template="plotly_dark", title=f"{selected_ticker} - 3 Month Trend")
+    st.plotly_chart(fig, use_container_width=True)
