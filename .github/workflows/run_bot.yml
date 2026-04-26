@@ -1,12 +1,18 @@
 name: Run Trading Bot Daily
 on:
   schedule:
-    - cron: '0 21 * * *' # Runs at 21:00 UTC (4 PM EST)
-  workflow_dispatch: # Allows you to run it manually with a button
+    - cron: '0 21 * * *' 
+  workflow_dispatch: 
+
+# This part fixes the permission error
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Fixes the warning you got
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,10 +28,10 @@ jobs:
       - name: Run Bot logic
         run: python bot.py
         
-      - name: Commit and Push Database changes
+      - name: Commit and Push changes
         run: |
-          git config --global user.name "TSX-Bot"
-          git config --global user.email "bot@example.com"
-          git add paper_trading.db
-          git commit -m "Automated Trade Update: $(date)" || exit 0
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add trades.csv
+          git commit -m "Automated Trade Update: $(date)" || echo "No changes to commit"
           git push
