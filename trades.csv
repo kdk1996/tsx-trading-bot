@@ -1,6 +1,24 @@
-Name,Ticker,Price,Signal,Bought_At,P&L_%
-Shopify Inc.,SHOP.TO,171.88,SELL,0.0,0
-Royal Bank of Canada,RY.TO,239.83,BUY,239.83,0
-Enbridge Inc.,ENB.TO,72.86,BUY,72.86,0
-Vermilion Energy,VET.TO,16.86,BUY,16.86,0
-Constellation Soft,CSU.TO,2410.8,SELL,0.0,0
+Name,Ticker,Price,Signal,Bought_At,P&L_%,Units
+Royal Bank,RY.TO,239.83,BUY,239.83,0,10
+TD Bank,TD.TO,143.57,BUY,143.57,0,10
+Scotiabank,BNS.TO,103.54,BUY,103.54,0,10
+Bank of Montreal,BMO.TO,208.04,BUY,208.04,0,10
+CIBC,CM.TO,149.84,BUY,149.84,0,10
+Brookfield,BN.TO,62.19,SELL,0.0,0,0
+Enbridge,ENB.TO,72.86,BUY,72.86,0,10
+CNRL,CNQ.TO,60.69,BUY,60.69,0,10
+Suncor,SU.TO,87.56,BUY,87.56,0,10
+TC Energy,TRP.TO,84.79,BUY,84.79,0,10
+Cameco,CCO.TO,167.02,BUY,167.02,0,10
+Shopify,SHOP.TO,171.88,SELL,0.0,0,0
+Constellation Soft,CSU.TO,2410.8,SELL,0.0,0,0
+Descartes,DSG.TO,98.41,SELL,0.0,0,0
+CN Rail,CNR.TO,156.71,BUY,156.71,0,10
+CPKC Rail,CP.TO,118.72,BUY,118.72,0,10
+Couche-Tard,ATD.TO,76.74,BUY,76.74,0,10
+Agnico Eagle,AEM.TO,273.41,BUY,273.41,0,10
+Barrick Gold,ABX.TO,56.14,BUY,56.14,0,10
+Wheaton Precious,WPM.TO,190.47,BUY,190.47,0,10
+Telus,T.TO,16.84,SELL,0.0,0,0
+BCE Inc.,BCE.TO,32.63,BUY,32.63,0,10
+Fortis,FTS.TO,77.03,BUY,77.03,0,10
