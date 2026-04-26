@@ -1,18 +1,16 @@
 name: Run Trading Bot Daily
 on:
   schedule:
-    - cron: '0 21 * * *' 
-  workflow_dispatch: 
+    - cron: '0 21 * * *' # 4 PM EST
+  workflow_dispatch: # Allows manual start
 
-# This part fixes the permission error
+# This specifically gives the bot permission to save the CSV
 permissions:
   contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Fixes the warning you got
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,5 +31,6 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add trades.csv
+          # This line prevents the error if the bot finds no new trades
           git commit -m "Automated Trade Update: $(date)" || echo "No changes to commit"
           git push
