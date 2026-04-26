@@ -2,85 +2,87 @@ import yfinance as yf
 import pandas as pd
 import os
 import time
-from datetime import datetime
+from sklearn.ensemble import RandomForestClassifier
 
-# --- CONFIGURATION (The Elite 25 Master List) ---
-WATCHLIST = {
-    "RY.TO": "Royal Bank", "TD.TO": "TD Bank", "BNS.TO": "Scotiabank", 
-    "BMO.TO": "Bank of Montreal", "CM.TO": "CIBC", "BN.TO": "Brookfield",
-    "ENB.TO": "Enbridge", "CNQ.TO": "CNRL", "SU.TO": "Suncor", 
-    "TRP.TO": "TC Energy", "CCO.TO": "Cameco", "SHOP.TO": "Shopify", 
-    "CSU.TO": "Constellation Soft", "DSG.TO": "Descartes", "CNR.TO": "CN Rail", 
-    "CP.TO": "CPKC Rail", "ATD.TO": "Couche-Tard", "AEM.TO": "Agnico Eagle", 
-    "ABX.TO": "Barrick Gold", "WPM.TO": "Wheaton Precious", "T.TO": "Telus", 
-    "BCE.TO": "BCE Inc.", "FTS.TO": "Fortis"
-}
-
+# --- CONFIGURATION ---
+WATCHLIST = ["RY.TO", "TD.TO", "SHOP.TO", "ENB.TO", "CNQ.TO", "T.TO", "BNS.TO"] # Start with a few to save API time
 PORTFOLIO_FILE = "portfolio.csv"
-INITIAL_CASH = 100000.00
 
-def run_trading_cycle():
-    # Load or Create Portfolio Tracker
+def prepare_ml_data(df):
+    """Teaches the AI what to look at (Features)"""
+    # Feature 1: Price Change
+    df['Return'] = df['Close'].pct_change()
+    # Feature 2: Volatility (5-day range)
+    df['Range'] = (df['High'] - df['Low']) / df['Close']
+    # Feature 3: Volume Momentum
+    df['Vol_Change'] = df['Volume'].pct_change()
+    
+    # Target: Did the price go UP tomorrow? (1 = Yes, 0 = No)
+    df['Target'] = (df['Close'].shift(-1) > df['Close']).astype(int)
+    return df.dropna()
+
+def run_ml_cycle():
     if os.path.exists(PORTFOLIO_FILE):
         portfolio = pd.read_csv(PORTFOLIO_FILE)
     else:
-        portfolio = pd.DataFrame(columns=["Ticker", "Buy_Price", "Units", "Date"])
+        portfolio = pd.DataFrame(columns=["Ticker", "Buy_Price", "Units"])
 
     trades_summary = []
 
-    for ticker, name in WATCHLIST.items():
+    for ticker in WATCHLIST:
         try:
-            stock = yf.Ticker(ticker)
-            df = stock.history(period="1y")
+            data = yf.Ticker(ticker).history(period="2y")
+            if len(data) < 100: continue
             
-            if len(df) < 200: continue
-
-            # AI Strategy Logic (Golden Cross)
-            ma50 = df['Close'].rolling(window=50).mean().iloc[-1]
-            ma200 = df['Close'].rolling(window=200).mean().iloc[-1]
-            current_price = round(df['Close'].iloc[-1], 2)
+            # Prepare the data for the 'Forest'
+            df = prepare_ml_data(data)
             
-            signal = "HOLD"
-            if ma50 > ma200: signal = "BUY"
-            elif ma50 < ma200: signal = "SELL"
-
-            # Portfolio Management
+            # Split into Features (X) and Target (y)
+            X = df[['Return', 'Range', 'Vol_Change']]
+            y = df['Target']
+            
+            # Train the Random Forest
+            # We use the last 100 days to train, then predict 'Today'
+            model = RandomForestClassifier(n_estimators=50, random_state=42)
+            model.fit(X.iloc[:-1], y.iloc[:-1])
+            
+            # Make the Prediction for Tomorrow
+            prediction = model.predict(X.tail(1))[0]
+            current_price = round(data['Close'].iloc[-1], 2)
+            
+            # ML Logic: If prediction is 1, it thinks the price will rise
+            signal = "BUY" if prediction == 1 else "SELL"
+            
+            # --- PORTFOLIO LOGIC ---
             is_owned = ticker in portfolio["Ticker"].values
-            purchase_price = 0
-            pnl_percent = 0
-
+            pnl = 0
+            buy_price = 0
+            
             if is_owned:
-                purchase_price = portfolio.loc[portfolio["Ticker"] == ticker, "Buy_Price"].values[0]
-                pnl_percent = round(((current_price - purchase_price) / purchase_price) * 100, 2)
+                buy_price = portfolio.loc[portfolio["Ticker"] == ticker, "Buy_Price"].values[0]
+                pnl = round(((current_price - buy_price) / buy_price) * 100, 2)
                 if signal == "SELL":
                     portfolio = portfolio[portfolio["Ticker"] != ticker]
-            
             elif signal == "BUY":
-                # Buy 10 units virtually
-                new_row = {"Ticker": ticker, "Buy_Price": current_price, "Units": 10, "Date": datetime.now().strftime("%Y-%m-%d")}
+                new_row = {"Ticker": ticker, "Buy_Price": current_price, "Units": 10}
                 portfolio = pd.concat([portfolio, pd.DataFrame([new_row])], ignore_index=True)
-                purchase_price = current_price
+                buy_price = current_price
 
             trades_summary.append({
-                "Name": name,
                 "Ticker": ticker,
                 "Price": current_price,
                 "Signal": signal,
-                "Bought_At": purchase_price,
-                "P&L_%": pnl_percent,
+                "Bought_At": buy_price,
+                "P&L_%": pnl,
                 "Units": 10 if (is_owned or signal == "BUY") else 0
             })
-            
-            # Small pause to avoid API rate limits
-            time.sleep(1) 
-            
-        except Exception as e:
-            print(f"Error analyzing {ticker}: {e}")
+            time.sleep(1)
 
-    # Save files back to GitHub
+        except Exception as e:
+            print(f"Error on {ticker}: {e}")
+
     portfolio.to_csv(PORTFOLIO_FILE, index=False)
     pd.DataFrame(trades_summary).to_csv("trades.csv", index=False)
-    print(f"Update Complete: {len(trades_summary)} stocks analyzed.")
 
 if __name__ == "__main__":
-    run_trading_cycle()
+    run_ml_cycle()
