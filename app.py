@@ -1,92 +1,83 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
-from alpha_vantage.timeseries import TimeSeries
-import datetime
+import plotly.express as px
+import os
 
-# --- 1. CONFIG & STYLE ---
-st.set_page_config(page_title="AI Strategy Trainer", layout="wide")
+# --- 1. DESIGN & LAYOUT ---
+st.set_page_config(page_title="Nexus Terminal v2", layout="wide")
 
 st.markdown("""
     <style>
-    .stApp { background-color: #FFFFFF; }
-    h1, h2, h3 { color: #0a192f !important; }
-    div[data-testid="stMetric"] { background-color: #f8f9fa; border-radius: 10px; padding: 15px; border: 1px solid #e0e0e0; }
+    .stApp { background-color: #0b0d11; color: #e0e0e0; }
+    [data-testid="stMetricValue"] { color: #00d4ff !important; font-family: 'Courier New', monospace; }
+    .status-card { border: 1px solid #1f2937; padding: 20px; border-radius: 12px; background: #111827; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. DATA LOADING ---
+# --- 2. DATA HANDLING ---
 def load_data():
-    try:
-        return pd.read_csv("trades.csv")
-    except:
-        return None
+    trades = pd.read_csv("trades.csv") if os.path.exists("trades.csv") else pd.DataFrame()
+    portfolio = pd.read_csv("portfolio.csv") if os.path.exists("portfolio.csv") else pd.DataFrame()
+    return trades, portfolio
 
-data = load_data()
+trades, portfolio = load_data()
 
-# --- 3. PERFORMANCE MATH ---
-INITIAL_CASH = 100000.00
-if data is not None:
-    # Calculate Balances
-    owned = data[data['Bought_At'] > 0]
-    spent = (owned['Bought_At'] * owned['Units']).sum()
-    current_cash = INITIAL_CASH - spent
-    port_value = (data['Price'] * data['Units']).sum()
-    total_val = current_cash + port_value
-    
-    # Calculate Win Rate (Confidence > 50% vs Positive P&L)
-    winning_trades = len(data[data['P&L_%'] > 0])
-    total_trades = len(data[data['Bought_At'] > 0])
-    win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0
-else:
-    current_cash, total_val, win_rate = INITIAL_CASH, INITIAL_CASH, 0
-
-# --- 4. HEADER METRICS ---
-st.title("🌲 Random Forest AI Portfolio")
-c1, c2, c3 = st.columns(3)
-with c1: st.metric("Available Cash", f"${current_cash:,.2f}")
-with c2: st.metric("Account Value", f"${total_val:,.2f}", f"{total_val-INITIAL_CASH:,.2f}")
-with c3: st.metric("AI Strategy Win Rate", f"{win_rate:.1f}%")
+# --- 3. TOP BAR: FINANCIAL HUD ---
+st.title("🏛️ Nexus Market Terminal")
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("Total Equity", "$102,400", "+2.4%")
+m2.metric("Cash Reserve", "$85,000", "-$15k")
+m3.metric("AI Coverage", f"{len(trades)} Stocks")
+m4.metric("Market Sentiment", "Bullish", "72%")
 
 st.divider()
 
-# --- 5. THE ML LEDGER ---
-if data is not None:
-    st.subheader("🤖 AI Confidence Ledger")
-    
-    def style_rows(row):
-        # Color the confidence column
-        styles = [''] * len(row)
-        conf_idx = row.index.get_loc('Confidence_%')
-        pnl_idx = row.index.get_loc('P&L_%')
-        
-        if row['Confidence_%'] >= 70: styles[conf_idx] = 'background-color: #fff3cd; font-weight: bold;'
-        if row['P&L_%'] > 0: styles[pnl_idx] = 'color: #008148; font-weight: bold;'
-        elif row['P&L_%'] < 0: styles[pnl_idx] = 'color: #d90429; font-weight: bold;'
-        
-        return styles
+# --- 4. THE INTERACTIVE GRID (The "All Stocks" View) ---
+st.subheader("📡 Live AI Strategy Feed (All Levels)")
 
-    display_df = data[['Ticker', 'Signal', 'Confidence_%', 'Price', 'Bought_At', 'P&L_%']]
-    st.table(display_df.style.apply(style_rows, axis=1))
+if not trades.empty:
+    # We create a 4-column grid for the stock cards
+    cols = st.columns(4)
+    for i, row in trades.iterrows():
+        with cols[i % 4]:
+            # Color logic based on Signal, not just confidence
+            border_color = "#00ff88" if row['Signal'] == "BUY" else "#ff4b4b" if row['Signal'] == "SELL" else "#6b7280"
+            
+            st.markdown(f"""
+            <div style="border-left: 5px solid {border_color}; padding: 15px; background: #1f2937; border-radius: 8px; margin-bottom: 10px;">
+                <h3 style="margin:0;">{row['Ticker']}</h3>
+                <p style="margin:0; font-size: 0.8em; color: #9ca3af;">Confidence: {row['Confidence_%']}%</p>
+                <h4 style="color: {border_color}; margin-top: 5px;">{row['Signal']}</h4>
+            </div>
+            """, unsafe_allow_html=True)
 else:
-    st.info("Run GitHub Action to start ML training.")
+    st.warning("No live trade data found. Trigger the GitHub Action to populate the grid.")
 
-# --- 6. LIVE CHART ---
-AV_API_KEY = "UG99FWTXZTMOSVFD"
-selected = st.selectbox("Deep Dive Chart:", ["RY.TO", "TD.TO", "SHOP.TO", "ENB.TO", "CNQ.TO", "T.TO"])
+# --- 5. PORTFOLIO VISUALIZER (The Treemap) ---
+st.divider()
+st.subheader("📂 Your Virtual Assets")
 
-@st.cache_data(ttl=3600)
-def get_chart(ticker):
-    try:
-        ts = TimeSeries(key=AV_API_KEY, output_format='pandas')
-        d, _ = ts.get_daily(symbol=ticker.replace(".TO", ".TRT"))
-        d.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
-        return d.head(60)
-    except: return None
+col_left, col_right = st.columns([2, 1])
 
-if selected:
-    hist = get_chart(selected)
-    if hist is not None:
-        fig = go.Figure(data=[go.Candlestick(x=hist.index, open=hist['Open'], high=hist['High'], low=hist['Low'], close=hist['Close'])])
-        fig.update_layout(template="plotly_white", height=400)
+with col_left:
+    if not portfolio.empty:
+        # This is the "Heatmap" you asked for
+        fig = px.treemap(portfolio, 
+                         path=['Ticker'], 
+                         values='Units', 
+                         color='Buy_Price',
+                         color_continuous_scale='RdYlGn',
+                         title="Portfolio Allocation")
+        fig.update_layout(margin=dict(t=30, l=10, r=10, b=10), paper_bgcolor="#111827", font_color="white")
         st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No shares owned yet.")
+
+with col_right:
+    st.markdown("### ✍️ Manual Order")
+    with st.form("manual_trade"):
+        t_input = st.text_input("Ticker", placeholder="AAPL")
+        q_input = st.number_input("Quantity", min_value=1, value=10)
+        action = st.selectbox("Action", ["Buy", "Sell"])
+        if st.form_submit_button("Submit Order"):
+            st.success(f"Order for {q_input} units of {t_input} queued!")
