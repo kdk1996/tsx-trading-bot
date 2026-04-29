@@ -3,3 +3,4 @@ pandas
 yfinance
 alpha_vantage
 scikit-learn
+plotly
